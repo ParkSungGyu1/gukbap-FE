@@ -58,8 +58,11 @@ const RestaurantMap = () => {
   const loadRegisteredMarkers = async (mapInstance, maps) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/v1/restaurant', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get('https://ad39-218-234-149-213.ngrok-free.app/api/v1/restaurant', {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'ngrok-skip-browser-warning': true
+        }
       });
       response.data.forEach((restaurant) => {
         displayMarker(mapInstance, maps, restaurant);

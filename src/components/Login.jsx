@@ -10,10 +10,14 @@ const Login = ({ onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:8080/api/v1/users/sign-in', {
+      const response = await axios.post('https://ad39-218-234-149-213.ngrok-free.app/api/v1/users/sign-in', {
         username,
         password
-      });
+      },
+        {
+          headers: { 
+          'ngrok-skip-browser-warning': true}
+        });
       const { token } = response.data;
       localStorage.setItem('token', token);
       onLogin();
