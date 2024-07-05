@@ -1,8 +1,16 @@
-import React from 'react';
+// RegisterButton.jsx
+import React, { useState } from 'react';
 import axios from 'axios';
+import ReviewModal from './ReviewModal';
 
 const RegisterButton = ({ place }) => {
-  const handleRegister = async () => {
+  const [showModal, setShowModal] = useState(false);
+
+  const handleRegister = () => {
+    setShowModal(true);
+  };
+
+  const handleSave = async (review) => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
@@ -10,13 +18,18 @@ const RegisterButton = ({ place }) => {
         {
           x: place.x,
           y: place.y,
-          name: place.place_name
+          name: place.place_name,
+          review: review
         },
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'ngrok-skip-browser-warning': true
+          }
         }
       );
-      alert('Restaurant registered successfully!');
+      alert('Restaurant registered successfully with review!');
+      setShowModal(false);
     } catch (error) {
       console.error('Failed to register restaurant:', error);
       alert('Failed to register restaurant. Please try again.');
@@ -24,9 +37,18 @@ const RegisterButton = ({ place }) => {
   };
 
   return (
-    <button className="register-button" onClick={handleRegister}>
-      Register
-    </button>
+    <>
+      <button className="register-button" onClick={handleRegister}>
+        Register
+      </button>
+      {showModal && (
+        <ReviewModal
+          place={place}
+          onSave={handleSave}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </>
   );
 };
 

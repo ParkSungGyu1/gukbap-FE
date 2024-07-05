@@ -3,6 +3,7 @@ import axios from 'axios';
 import RegisterButton from './RegisterButton';
 import MarkerInfo from './MarkerInfo';
 
+
 const KAKAO_APP_KEY = '13ae7eab289fd28ffbdc282b63f4f621';
 
 const loadKakaoMaps = () => {
@@ -27,6 +28,14 @@ const RestaurantMap = () => {
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
   const [kakaoMaps, setKakaoMaps] = useState(null);
+  const [registeredMarkers, setRegisteredMarkers] = useState([]);
+  const [searchMarkers, setSearchMarkers] = useState([]);
+
+
+  const clearSearchMarkers = () => {
+    searchMarkers.forEach(marker => marker.setMap(null));
+    setSearchMarkers([]);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -58,49 +67,88 @@ const RestaurantMap = () => {
   const loadRegisteredMarkers = async (mapInstance, maps) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('https://ad39-218-234-149-213.ngrok-free.app/api/v1/restaurant', {
+      const response = await axios.get('http://localhost:8080/api/v1/restaurant', {
         headers: { 
           Authorization: `Bearer ${token}`,
           'ngrok-skip-browser-warning': true
         }
       });
-      response.data.forEach((restaurant) => {
-        displayMarker(mapInstance, maps, restaurant);
-      });
+      const newMarkers = response.data.map(restaurant => 
+        displayMarker(mapInstance, maps, restaurant, true)
+      );
+      setRegisteredMarkers(newMarkers);
     } catch (error) {
       console.error('Failed to load registered markers:', error);
     }
   };
-
   const handleSearch = (e) => {
     e.preventDefault();
     if (map && kakaoMaps && searchQuery) {
       const ps = new kakaoMaps.services.Places();
       ps.keywordSearch(searchQuery, (data, status) => {
         if (status === kakaoMaps.services.Status.OK) {
-          const bounds = new kakaoMaps.LatLngBounds();
           const place = data[0]; // Get the first result
-          setSelectedPlace(place);
-          displayMarker(map, kakaoMaps, place);
-          bounds.extend(new kakaoMaps.LatLng(place.y, place.x));
-          map.setBounds(bounds);
+          
+          // Check in both registered and search markers
+          const existingRegisteredMarker = registeredMarkers.find(marker => 
+            marker.getPosition().getLat().toFixed(7) === parseFloat(place.y).toFixed(7) && 
+            marker.getPosition().getLng().toFixed(7) === parseFloat(place.x).toFixed(7)
+          );
+  
+          const existingSearchMarker = searchMarkers.find(marker => 
+            marker.getPosition().getLat().toFixed(7) === parseFloat(place.y).toFixed(7) && 
+            marker.getPosition().getLng().toFixed(7) === parseFloat(place.x).toFixed(7)
+          );
+  
+          if (existingRegisteredMarker || existingSearchMarker) {
+            // If a marker already exists at this location, center the map on it
+            clearSearchMarkers();
+            const existingMarker = existingRegisteredMarker || existingSearchMarker;
+            map.setCenter(existingMarker.getPosition());
+            map.setLevel(3); // Zoom in to a closer level
+            setSelectedPlace(place);
+
+          } else {
+            // If no marker exists, clear existing search markers and create a new one
+            clearSearchMarkers();
+            const bounds = new kakaoMaps.LatLngBounds();
+            const newMarker = displayMarker(map, kakaoMaps, place, false);
+            setSearchMarkers([newMarker]);
+            bounds.extend(newMarker.getPosition());
+            map.setBounds(bounds);
+            setSelectedPlace(place);
+
+          }
         }
       });
     }
   };
-
-  const displayMarker = (mapInstance, maps, place) => {
+  const displayMarker = (mapInstance, maps, place, isRegistered) => {
+    const markerPosition = new maps.LatLng(place.y, place.x);
+    let markerImage;
+  
+    if (isRegistered) {
+      markerImage = new maps.MarkerImage(
+        'https://velog.velcdn.com/images/steven0507/post/89548d24-4b92-458d-b135-88026b9da1fc/image.png',
+        new maps.Size(32, 32),
+        { offset: new maps.Point(16, 32) }
+      );
+    }
+  
     const marker = new maps.Marker({
       map: mapInstance,
-      position: new maps.LatLng(place.y, place.x)
+      position: markerPosition,
+      image: isRegistered ? markerImage : null
     });
-
+  
     maps.event.addListener(marker, 'click', () => {
       setSelectedPlace(place);
       setMarkerInfo(place);
     });
+  
+    return marker;
   };
-
+ 
   useEffect(() => {
     if (map && kakaoMaps) {
       kakaoMaps.event.addListener(map, 'zoom_changed', () => {
@@ -124,7 +172,7 @@ const RestaurantMap = () => {
         <button type="submit">Search</button>
       </form>
       <div ref={mapRef} className="map-container"></div>
-      {selectedPlace && <RegisterButton place={selectedPlace} />}
+      
       {markerInfo && <MarkerInfo place={markerInfo} onClose={() => setMarkerInfo(null)} />}
     </div>
   );
