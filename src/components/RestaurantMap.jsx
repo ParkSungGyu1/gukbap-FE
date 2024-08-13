@@ -67,7 +67,7 @@ const RestaurantMap = () => {
   const loadRegisteredMarkers = async (mapInstance, maps) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/v1/restaurant', {
+      const response = await axios.get('https://9c7a-218-234-149-213.ngrok-free.app/api/v1/restaurant', {
         headers: { 
           Authorization: `Bearer ${token}`,
           'ngrok-skip-browser-warning': true
