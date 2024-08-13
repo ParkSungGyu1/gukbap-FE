@@ -14,7 +14,7 @@ const RegisterButton = ({ place }) => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        'https://9294-218-234-149-213.ngrok-free.app/api/v1/restaurant',
+        'https://9c7a-218-234-149-213.ngrok-free.app/api/v1/restaurant',
         {
           x: place.x,
           y: place.y,
